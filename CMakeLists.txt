@@ -1,6 +1,4 @@
 cmake_minimum_required(VERSION 3.22)
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project(SPARQ-Protocol
         VERSION 1.0.0
@@ -13,6 +11,8 @@ add_library(SPARQ-Protocol INTERFACE)
 target_sources(SPARQ-Protocol
         INTERFACE
         include/sparq/protocol.hpp
+        include/sparq/encoder.hpp
+        include/sparq/decoder.hpp
 )
 
 target_include_directories(SPARQ-Protocol
@@ -22,7 +22,7 @@ target_include_directories(SPARQ-Protocol
 
 target_compile_features(SPARQ-Protocol
         INTERFACE
-        cxx_std_20
+        cxx_std_23
 )
 
 enable_testing()
