@@ -181,8 +181,7 @@ namespace spq
         }
 
         [[nodiscard]]
-        constexpr std::uint8_t xor8(
-            std::span<std::uint8_t const> const data) noexcept
+        constexpr std::uint8_t xor8(std::span<std::uint8_t const> const data) noexcept
         {
             std::uint8_t checksum{};
 
@@ -222,8 +221,7 @@ namespace spq
     }
 
     [[nodiscard]]
-    constexpr header decode_header(
-        std::span<std::uint8_t const> const data) noexcept
+    constexpr header decode_header(std::span<std::uint8_t const> const data) noexcept
     {
         header result{};
 
@@ -240,9 +238,7 @@ namespace spq
         return result;
     }
 
-    constexpr void encode_header(
-        header const& value,
-        std::span<std::uint8_t> data) noexcept
+    constexpr void encode_header(header const& value, std::span<std::uint8_t> data) noexcept
     {
         if (data.size() < constants::message_header_length)
         {
