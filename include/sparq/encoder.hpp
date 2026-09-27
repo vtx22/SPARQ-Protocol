@@ -34,10 +34,10 @@ namespace spq
         constexpr encoder() noexcept = default;
 
         [[nodiscard]]
-        encoded_message encode_value_pair(
+        constexpr encoded_message encode_value_pair(
             std::span<std::uint8_t> const buffer,
-            std::uint8_t id,
-            float value,
+            std::uint8_t const id,
+            float const value,
             SignatureType const signature = constants::default_signature) const noexcept
         {
             return encode_value_pairs(
@@ -48,7 +48,7 @@ namespace spq
         }
 
         [[nodiscard]]
-        encoded_message encode_value_pairs(
+        constexpr encoded_message encode_value_pairs(
             std::span<std::uint8_t> buffer,
             std::span<std::uint8_t const> const ids,
             std::span<float const> const values,
@@ -93,7 +93,7 @@ namespace spq
         }
 
         [[nodiscard]]
-        encoded_message encode_bulk_single_id(
+        constexpr encoded_message encode_bulk_single_id(
             std::span<std::uint8_t> buffer,
             std::uint8_t const id,
             std::span<float const> const values,
@@ -190,8 +190,7 @@ namespace spq
                     message_type::command,
                     value_encoding::floating_point,
                     true),
-                .payload_length =
-                    static_cast<MessageLengthType>(payload_length),
+                .payload_length = static_cast<MessageLengthType>(payload_length),
                 .checksum = 0u};
 
             encode_header(header, buffer);

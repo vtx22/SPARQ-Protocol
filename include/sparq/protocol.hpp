@@ -128,8 +128,9 @@ namespace spq
         }
 
         template <typename T>
+            requires std::is_integral_v<T>
         [[nodiscard]]
-        constexpr T to_protocol_endian(T value) noexcept
+        constexpr T correct_for_endianess(T value) noexcept
         {
             if constexpr (system_has_protocol_endianess())
             {
@@ -144,40 +145,39 @@ namespace spq
         [[nodiscard]]
         constexpr std::uint16_t read_u16(std::uint8_t const* data) noexcept
         {
-            auto const value = static_cast<std::uint16_t>(static_cast<std::uint16_t>(data[0]) | (static_cast<std::uint16_t>(data[1]) << 8u));
-            return to_protocol_endian(value);
+            auto const value = static_cast<std::uint16_t>(data[0] << 0u)
+                             | static_cast<std::uint16_t>(data[1] << 8u);
+            return correct_for_endianess(value);
         }
 
         constexpr void write_u16(
             std::uint8_t* data,
-            std::uint16_t value) noexcept
+            std::uint16_t const value) noexcept
         {
-            value = to_protocol_endian(value);
-            data[0] = static_cast<std::uint8_t>(value & 0xFFu);
-            data[1] = static_cast<std::uint8_t>(value >> 8u);
+            auto const wire_value = correct_for_endianess(value);
+            data[0] = static_cast<std::uint8_t>((wire_value >> 0u) & 0xFFu);
+            data[1] = static_cast<std::uint8_t>((wire_value >> 8u) & 0xFFu);
         }
 
         [[nodiscard]]
-        constexpr std::uint32_t read_u32(
-            std::uint8_t const* data) noexcept
+        constexpr std::uint32_t read_u32(std::uint8_t const* data) noexcept
         {
-            auto const value = static_cast<std::uint32_t>(data[0]) << 24u
-                             | (static_cast<std::uint32_t>(data[1]) << 16u)
-                             | (static_cast<std::uint32_t>(data[2]) << 8u)
-                             | (static_cast<std::uint32_t>(data[3]) << 0u);
-
-            return to_protocol_endian(value);
+            auto const value = static_cast<std::uint32_t>(data[0]) << 0u
+                             | (static_cast<std::uint32_t>(data[1]) << 8u)
+                             | (static_cast<std::uint32_t>(data[2]) << 16u)
+                             | (static_cast<std::uint32_t>(data[3]) << 24u);
+            return correct_for_endianess(value);
         }
 
         constexpr void write_u32(
             std::uint8_t* data,
-            std::uint32_t value) noexcept
+            std::uint32_t const value) noexcept
         {
-            value = to_protocol_endian(value);
-            data[0] = static_cast<std::uint8_t>(value >> 0u);
-            data[1] = static_cast<std::uint8_t>(value >> 8u);
-            data[2] = static_cast<std::uint8_t>(value >> 16u);
-            data[3] = static_cast<std::uint8_t>(value >> 24u);
+            auto const wire_value = correct_for_endianess(value);
+            data[0] = static_cast<std::uint8_t>((wire_value >> 0u) & 0xFFu);
+            data[1] = static_cast<std::uint8_t>((wire_value >> 8u) & 0xFFu);
+            data[2] = static_cast<std::uint8_t>((wire_value >> 16u) & 0xFFu);
+            data[3] = static_cast<std::uint8_t>((wire_value >> 24u) & 0xFFu);
         }
 
         [[nodiscard]]
@@ -200,8 +200,7 @@ namespace spq
             value_encoding const encoding = value_encoding::floating_point,
             bool const checksum_enabled = true) noexcept
         {
-            auto control = static_cast<std::uint8_t>(
-                static_cast<std::uint8_t>(type) << constants::message_type_shift);
+            auto control = static_cast<std::uint8_t>(static_cast<std::uint8_t>(type) << constants::message_type_shift);
 
             if (encoding != value_encoding::floating_point)
             {
@@ -253,9 +252,7 @@ namespace spq
         data[0] = value.signature;
         data[1] = value.control;
 
-        helper::write_u16(
-            &data[2],
-            value.payload_length);
+        helper::write_u16(&data[2], value.payload_length);
 
         data[4] = value.checksum;
     }

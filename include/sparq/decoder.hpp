@@ -5,6 +5,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string_view>
 
@@ -36,9 +37,7 @@ namespace spq
                 return false;
             }
 
-            auto const expected =
-                raw[constants::message_header_length + header.payload_length];
-
+            auto const expected = raw[constants::message_header_length + header.payload_length];
             return helper::xor8(payload) == expected;
         }
 
@@ -48,24 +47,25 @@ namespace spq
             switch (type())
             {
             case message_type::id_value_pair:
+            {
                 return payload.size() / constants::bytes_per_value_pair;
-
+            }
             case message_type::bulk_single_id:
+            {
                 if (payload.empty())
                 {
                     return 0;
                 }
 
-                return (payload.size() - 1u) / constants::bytes_per_value;
-
+                return (payload.size() - 1) / constants::bytes_per_value;
+            }
             default:
                 return 0;
             }
         }
 
         [[nodiscard]]
-        constexpr std::uint8_t value_id(
-            std::size_t const index) const noexcept
+        constexpr std::optional<std::uint8_t> value_id(std::size_t const index) const noexcept
         {
             if (type() == message_type::id_value_pair)
             {
@@ -77,11 +77,11 @@ namespace spq
                 return payload[0];
             }
 
-            return 0u;
+            return std::nullopt;
         }
 
         [[nodiscard]]
-        constexpr float value(std::size_t const index) const noexcept
+        constexpr std::optional<float> value(std::size_t const index) const noexcept
         {
             std::size_t offset{};
 
@@ -91,11 +91,11 @@ namespace spq
             }
             else if (type() == message_type::bulk_single_id)
             {
-                offset = 1u + index * constants::bytes_per_value;
+                offset = index * constants::bytes_per_value + 1u;
             }
             else
             {
-                return 0.0f;
+                return std::nullopt;
             }
 
             auto const bits = helper::read_u32(payload.data() + offset);
@@ -103,32 +103,29 @@ namespace spq
         }
 
         [[nodiscard]]
-        constexpr std::string_view string() const noexcept
+        constexpr std::optional<std::string_view> string() const noexcept
         {
             if (type() != message_type::string)
             {
-                return {};
+                return std::nullopt;
             }
 
-            return std::string_view{
-                reinterpret_cast<char const*>(payload.data()),
-                payload.size()};
+            return std::string_view{reinterpret_cast<char const*>(payload.data()), payload.size()};
         }
 
         [[nodiscard]]
-        constexpr sender_command command() const noexcept
+        constexpr std::optional<sender_command> command() const noexcept
         {
             if (type() != message_type::command || payload.empty())
             {
-                return sender_command::clear_console;
+                return std::nullopt;
             }
 
             return static_cast<sender_command>(payload[0]);
         }
 
         [[nodiscard]]
-        constexpr std::span<std::uint8_t const>
-        command_data() const noexcept
+        constexpr std::span<std::uint8_t const> command_data() const noexcept
         {
             if (type() != message_type::command || payload.size() <= 1u)
             {
@@ -164,14 +161,13 @@ namespace spq
         }
 
         [[nodiscard]]
-        constexpr decode_result consume(
-            std::span<std::uint8_t const> data) noexcept
+        constexpr decode_result consume(std::span<std::uint8_t const> data) noexcept
         {
             for (auto const byte : data)
             {
                 auto const result = consume_byte(byte);
 
-                if (result == decode_result::message_available || result == decode_result::invalid)
+                if (result != decode_result::need_more_data)
                 {
                     return result;
                 }
@@ -289,20 +285,12 @@ namespace spq
                 .payload = payload,
                 .raw = {}};
 
-            /*
-             * raw cannot point at the original UART input because
-             * consume() intentionally accepts arbitrary chunks.
-             *
-             * If raw access is required, construct it from the
-             * header/payload fields instead.
-             */
             m_state = state::waiting_for_signature;
-
             return decode_result::message_available;
         }
 
-        SignatureType m_signature = constants::default_signature;
-        state m_state = state::waiting_for_signature;
+        SignatureType m_signature{constants::default_signature};
+        state m_state{state::waiting_for_signature};
         header m_header{};
 
         std::array<std::uint8_t, constants::message_header_length> m_header_buffer{};
