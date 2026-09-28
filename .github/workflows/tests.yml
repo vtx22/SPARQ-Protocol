@@ -15,24 +15,25 @@ concurrency:
 
 jobs:
   test:
-    name: ${{ matrix.name }} (${{ matrix.build_type }})
+    name: ${{ matrix.toolchain }} (${{ matrix.build_type }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         build_type: [ Debug, Release ]
+        toolchain: [ linux-gcc, linux-clang, windows-msvc, macos-clang ]
         include:
-          - name: Linux GCC
+          - toolchain: linux-gcc
             os: ubuntu-24.04
             cc: gcc
             cxx: g++
-          - name: Linux Clang
+          - toolchain: linux-clang
             os: ubuntu-24.04
             cc: clang
             cxx: clang++
-          - name: Windows MSVC
+          - toolchain: windows-msvc
             os: windows-latest
-          - name: macOS Clang
+          - toolchain: macos-clang
             os: macos-latest
 
     steps:
