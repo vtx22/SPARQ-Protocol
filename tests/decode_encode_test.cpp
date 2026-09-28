@@ -319,7 +319,7 @@ TEST_CASE("Encoder rejects invalid input")
 
     SECTION("buffer smaller than the frame")
     {
-        constexpr std::size_t frame_size = constants::message_header_length + constants::bytes_per_value_pair + constants::checksum_length;
+        static constexpr std::size_t frame_size = constants::message_header_length + constants::bytes_per_value_pair + constants::checksum_length;
         auto const size = GENERATE(range(std::size_t{0}, frame_size));
         CAPTURE(size);
 
