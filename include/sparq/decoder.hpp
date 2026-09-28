@@ -19,7 +19,7 @@ namespace spq
 
     struct message_view
     {
-        header header{};
+        spq::header header{};
         std::span<std::uint8_t const> payload{};
         std::span<std::uint8_t const> raw{};
 
