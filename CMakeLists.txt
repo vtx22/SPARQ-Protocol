@@ -41,11 +41,11 @@ if (BUILD_TESTING)
 
     FetchContent_MakeAvailable(Catch2)
 
-    add_executable(sparq_protocol_smoke
+    add_executable(decode_encode_test
             tests/decode_encode_test.cpp
     )
 
-    target_link_libraries(sparq_protocol_smoke
+    target_link_libraries(decode_encode_test
             PRIVATE
             SPARQ-Protocol
             Catch2::Catch2WithMain
@@ -53,5 +53,5 @@ if (BUILD_TESTING)
 
     include(Catch)
 
-    catch_discover_tests(sparq_protocol_smoke)
+    catch_discover_tests(decode_encode_test)
 endif ()

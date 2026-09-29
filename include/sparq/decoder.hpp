@@ -32,13 +32,13 @@ namespace spq
         [[nodiscard]]
         constexpr bool checksum_valid() const noexcept
         {
-            if (raw.size() < constants::message_header_length + header.payload_length + constants::checksum_length)
+            auto const cs_index = constants::message_header_length + header.payload_length;
+            if (raw.size() < cs_index + constants::checksum_length)
             {
                 return false;
             }
 
-            auto const expected = raw[constants::message_header_length + header.payload_length];
-            return helper::xor8(payload) == expected;
+            return helper::xor8(payload) == raw[cs_index];
         }
 
         [[nodiscard]]
@@ -85,17 +85,15 @@ namespace spq
         {
             std::size_t offset{};
 
-            if (type() == message_type::id_value_pair)
+            switch (type())
             {
+            case message_type::id_value_pair:
                 offset = index * constants::bytes_per_value_pair + 1u;
-            }
-            else if (type() == message_type::bulk_single_id)
-            {
+                break;
+            case message_type::bulk_single_id:
                 offset = index * constants::bytes_per_value + 1u;
-            }
-            else
-            {
-                return std::nullopt;
+                break;
+            default: return std::nullopt;
             }
 
             auto const bits = helper::read_u32(payload.data() + offset);
