@@ -19,10 +19,8 @@ namespace spq
 
         data[0] = value.signature;
         data[1] = value.control;
-
         helper::write_u16(&data[2], value.payload_length);
-
-        data[4] = value.checksum;
+        data[4] = helper::xor8(data.first(4));
     }
 
     struct encoded_message
@@ -248,12 +246,7 @@ namespace spq
             std::span<std::uint8_t> data,
             header const& header_value) noexcept
         {
-            auto const payload_begin = data.begin() + constants::message_header_length;
-            auto const payload = std::span<std::uint8_t const>{
-                payload_begin,
-                header_value.payload_length};
-
-            data[constants::message_header_length + header_value.payload_length] = helper::xor8(payload);
+            data[constants::message_header_length + header_value.payload_length] = helper::xor8(data.first(data.size() - 1));
             return encoded_message{.data = data};
         }
     };

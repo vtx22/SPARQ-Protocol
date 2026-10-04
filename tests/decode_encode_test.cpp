@@ -68,15 +68,15 @@ TEST_CASE("XOR8 checksum is calculated correctly")
 {
     auto const [input, expected] = GENERATE(
         table<Bytes, std::uint8_t>({
-            {Bytes{},                             0x00},
-            {Bytes{0x00},                         0x00},
-            {Bytes{0xFF},                         0xFF},
-            {Bytes{0x01, 0x02},                   0x03},
-            {Bytes{0xFF, 0xFF},                   0x00},
-            {Bytes{0xAA, 0x55},                   0xFF},
-            {Bytes{0x12, 0x34, 0x56},             0x70},
-            {Bytes{0x01, 0x02, 0x04, 0x08},       0x0F},
-            {Bytes{0xDE, 0xAD, 0xBE, 0xEF},       0x22},
+            {                            Bytes{}, 0x00},
+            {                        Bytes{0x00}, 0x00},
+            {                        Bytes{0xFF}, 0xFF},
+            {                  Bytes{0x01, 0x02}, 0x03},
+            {                  Bytes{0xFF, 0xFF}, 0x00},
+            {                  Bytes{0xAA, 0x55}, 0xFF},
+            {            Bytes{0x12, 0x34, 0x56}, 0x70},
+            {      Bytes{0x01, 0x02, 0x04, 0x08}, 0x0F},
+            {      Bytes{0xDE, 0xAD, 0xBE, 0xEF}, 0x22},
             {Bytes{0x01, 0x02, 0x03, 0x04, 0x05}, 0x01},
     }));
     CAPTURE(input, expected);
@@ -265,7 +265,7 @@ TEST_CASE("Encoded frames match the wire format byte for byte")
     SECTION("id/value pair")
     {
         auto const message = enc.encode_value_pair(fresh_buffer(), 0x01, 1.0f);
-        Bytes const expected{0xFF, 0x40, 0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x80, 0x3F, 0xBE};
+        Bytes const expected{0xFF, 0x40, 0x05, 0x00, 0xBA, 0x01, 0x00, 0x00, 0x80, 0x3F, 0xBE};
         CHECK(to_bytes(message) == expected);
     }
 
@@ -273,21 +273,21 @@ TEST_CASE("Encoded frames match the wire format byte for byte")
     {
         constexpr std::array values{1.0f};
         auto const message = enc.encode_bulk_single_id(fresh_buffer(), 0x02, values);
-        Bytes const expected{0xFF, 0x48, 0x05, 0x00, 0x00, 0x02, 0x00, 0x00, 0x80, 0x3F, 0xBD};
+        Bytes const expected{0xFF, 0x48, 0x05, 0x00, 0xB2, 0x02, 0x00, 0x00, 0x80, 0x3F, 0xBD};
         CHECK(to_bytes(message) == expected);
     }
 
     SECTION("string")
     {
         auto const message = enc.encode_string(fresh_buffer(), "AB");
-        Bytes const expected{0xFF, 0x44, 0x02, 0x00, 0x00, 0x41, 0x42, 0x03};
+        Bytes const expected{0xFF, 0x44, 0x02, 0x00, 0xB9, 0x41, 0x42, 0x03};
         CHECK(to_bytes(message) == expected);
     }
 
     SECTION("command without data")
     {
         auto const message = enc.encode_command(fresh_buffer(), sender_command::clear_console);
-        Bytes const expected{0xFF, 0x4C, 0x01, 0x00, 0x00, 0x00, 0x00};
+        Bytes const expected{0xFF, 0x4C, 0x01, 0x00, 0xB2, 0x00, 0x00};
         CHECK(to_bytes(message) == expected);
     }
 }
