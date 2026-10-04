@@ -7,10 +7,24 @@
 #include <cstdint>
 #include <span>
 #include <string_view>
-#include <type_traits>
 
 namespace spq
 {
+    constexpr void encode_header(header const& value, std::span<std::uint8_t> data) noexcept
+    {
+        if (data.size() < constants::message_header_length)
+        {
+            return;
+        }
+
+        data[0] = value.signature;
+        data[1] = value.control;
+
+        helper::write_u16(&data[2], value.payload_length);
+
+        data[4] = value.checksum;
+    }
+
     struct encoded_message
     {
         std::span<std::uint8_t const> data{};
