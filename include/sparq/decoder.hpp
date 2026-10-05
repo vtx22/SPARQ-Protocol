@@ -228,12 +228,12 @@ namespace spq
     }
 
     [[nodiscard]]
-    inline decode_output decode_next(std::span<std::uint8_t const> in) noexcept
+    inline decode_output decode_next(
+        std::span<std::uint8_t const> in,
+        SignatureType const signature = constants::default_signature) noexcept
     {
         // 1. signature: skip garbage up to the next candidate
-        auto const* sig = static_cast<std::uint8_t const*>(
-            std::memchr(in.data(), constants::default_signature, in.size()));
-
+        auto const* sig = static_cast<std::uint8_t const*>(std::memchr(in.data(), signature, in.size()));
         if (sig == nullptr)
         {
             return {decode_result::need_more_data, in.size(), {}}; // all garbage
@@ -281,6 +281,11 @@ namespace spq
         static_assert(BufferSize >= MaxMessageLength * 2, "buffer must hold at least two maximum-size frames");
 
     public:
+        explicit decoder(SignatureType const signature = constants::default_signature) noexcept
+            : m_signature{signature}
+        {
+        }
+
         [[nodiscard]]
         std::optional<message_view> next() noexcept
         {
@@ -332,5 +337,6 @@ namespace spq
 
         rx_buffer<BufferSize> m_rx{};
         std::size_t m_pending{};
+        SignatureType m_signature;
     };
 }
