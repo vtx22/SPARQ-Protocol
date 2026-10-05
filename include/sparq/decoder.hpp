@@ -3,13 +3,10 @@
 #include "protocol.hpp"
 
 #include <algorithm>
+#include <array>
 #include <bit>
-#include <cstddef>
-#include <cstdint>
-#include <optional>
 #include <ranges>
 #include <span>
-#include <string_view>
 #include <utility>
 
 namespace spq
@@ -267,34 +264,54 @@ namespace spq
         // 2. header
         if (in.size() < constants::message_header_length)
         {
-            return {decode_result::need_more_data, skip, {}};
+            return {
+                .result = decode_result::need_more_data,
+                .consumed = skip,
+                .message = {}};
         }
 
         auto const hdr = decode_header(in);
+        if (helper::xor8(in.first(constants::message_header_length - 1u)) != hdr.checksum)
+        {
+            return {
+                .result = decode_result::invalid,
+                .consumed = skip + 1u,
+                .message = {}};
+        }
 
         // 3. payload + trailing checksum
-        auto const frame_size = constants::message_header_length
-                              + static_cast<std::size_t>(hdr.payload_length)
-                              + constants::checksum_length;
+        auto const frame_size =
+            constants::message_header_length
+            + static_cast<std::size_t>(hdr.payload_length)
+            + constants::checksum_length;
 
         if (in.size() < frame_size)
         {
-            return {decode_result::need_more_data, skip, {}};
+            return {
+                .result = decode_result::need_more_data,
+                .consumed = skip,
+                .message = {}};
         }
 
         message_view const msg{
-            hdr,
-            in.subspan(constants::message_header_length, hdr.payload_length),
-            in.first(frame_size)};
+            .header = hdr,
+            .payload = in.subspan(constants::message_header_length, hdr.payload_length),
+            .raw = in.first(frame_size)};
 
         // false signature = drop only that one byte and rescan, never the whole "frame"
         if ((hdr.checksum_enabled() && !msg.checksum_valid())
             || !detail::payload_well_formed(hdr.type(), hdr.payload_length))
         {
-            return {decode_result::invalid, skip + 1u, {}};
+            return {
+                .result = decode_result::invalid,
+                .consumed = skip + 1u,
+                .message = {}};
         }
 
-        return {decode_result::message_available, skip + frame_size, msg};
+        return {
+            .result = decode_result::message_available,
+            .consumed = skip + frame_size,
+            .message = msg};
     }
 
     template <std::size_t BufferSize, std::size_t MaxMessageLength = constants::max_message_length>
@@ -338,7 +355,7 @@ namespace spq
         {
             release();
 
-            if (m_rx.writable() < constants::max_message_length)
+            if (m_rx.writable() < MaxMessageLength)
             {
                 m_rx.compact();
             }
