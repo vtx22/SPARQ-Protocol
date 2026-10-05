@@ -311,7 +311,7 @@ namespace spq
 
             for (;;)
             {
-                auto const out = decode_next(m_rx.view());
+                auto const out = decode_next(m_rx.view(), m_signature);
 
                 if (out.result == decode_result::message_available)
                 {
