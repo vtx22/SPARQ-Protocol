@@ -21,29 +21,29 @@ namespace spq
 
     public:
         [[nodiscard]]
-        uint8_t* write_ptr()
+        constexpr uint8_t* write_ptr() noexcept
         {
             return buffer.data() + write;
         }
 
         [[nodiscard]]
-        std::size_t writable() const
+        constexpr std::size_t writable() const noexcept
         {
             return N - write;
         }
 
-        void commit(std::size_t const n)
+        constexpr void commit(std::size_t const n) noexcept
         {
             write += n;
         }
 
         [[nodiscard]]
-        std::span<std::uint8_t const> view() const
+        constexpr std::span<std::uint8_t const> view() const noexcept
         {
             return {buffer.data() + read, write - read};
         }
 
-        void consume(std::size_t const n)
+        constexpr void consume(std::size_t const n) noexcept
         {
             read += n;
             if (read == write)
@@ -52,7 +52,7 @@ namespace spq
             }
         }
 
-        void compact()
+        constexpr void compact()
         {
             if (read == 0)
             {
@@ -283,7 +283,7 @@ namespace spq
             in.subspan(constants::message_header_length, hdr.payload_length),
             in.first(frame_size)};
 
-        // false signature => drop only that one byte and rescan, never the whole "frame"
+        // false signature = drop only that one byte and rescan, never the whole "frame"
         if ((hdr.checksum_enabled() && !msg.checksum_valid())
             || !detail::payload_well_formed(hdr.type(), hdr.payload_length))
         {
@@ -330,7 +330,7 @@ namespace spq
         }
 
         [[nodiscard]]
-        std::span<std::uint8_t> write_span() noexcept
+        constexpr std::span<std::uint8_t> write_span() noexcept
         {
             release();
 
@@ -342,13 +342,13 @@ namespace spq
             return {m_rx.write_ptr(), m_rx.writable()};
         }
 
-        void commit(std::size_t const n) noexcept
+        constexpr void commit(std::size_t const n) noexcept
         {
             m_rx.commit(n);
         }
 
     private:
-        void release() noexcept
+        constexpr void release() noexcept
         {
             m_rx.consume(std::exchange(m_pending, 0u));
         }
