@@ -2,6 +2,7 @@
 
 #include "protocol.hpp"
 
+#include <algorithm>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -59,7 +60,10 @@ namespace spq
                 return;
             }
 
-            std::memmove(buffer.data(), buffer.data() + read, write - read);
+            std::copy_backward(
+                buffer.begin() + read,
+                buffer.begin() + write,
+                buffer.begin() + (write - read));
             write -= read;
             read = 0;
         }
