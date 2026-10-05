@@ -192,6 +192,24 @@ namespace spq
         }
     };
 
+    [[nodiscard]]
+    constexpr header decode_header(std::span<std::uint8_t const> const data) noexcept
+    {
+        header result{};
+
+        if (data.size() < constants::message_header_length)
+        {
+            return result;
+        }
+
+        result.signature = data[0];
+        result.control = data[1];
+        result.payload_length = helper::read_u16(&data[2]);
+        result.checksum = data[4];
+
+        return result;
+    }
+
     enum class decode_result : std::uint8_t
     {
         need_more_data,
