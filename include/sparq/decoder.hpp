@@ -143,8 +143,14 @@ namespace spq
                    });
         }
 
+        /**
+         * @brief Gets the string_view of the message if the message type was string.
+         * @attention As the string messages are not 0 terminated, the string view is not either.
+         * @see string() to get an std::string
+         * @return Message as string_view if the message type was string, nullopt otherwise.
+         */
         [[nodiscard]]
-        constexpr std::optional<std::string_view> string() const noexcept
+        constexpr std::optional<std::string_view> string_view() const noexcept
         {
             if (type() != message_type::string)
             {
@@ -152,6 +158,19 @@ namespace spq
             }
 
             return std::string_view{reinterpret_cast<char const*>(payload.data()), payload.size()};
+        }
+
+        /**
+         * @brief Gets the string of the message if the message type was string.
+         * @see string_view() to get an std::string_view
+         * @return Message as std::string if the message type was string, nullopt otherwise.
+         */
+        [[nodiscard]]
+        constexpr std::optional<std::string> string() const noexcept
+        {
+            return string_view().transform([](std::string_view const text) {
+                return std::string{text};
+            });
         }
 
         [[nodiscard]]
