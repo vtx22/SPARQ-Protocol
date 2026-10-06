@@ -2,6 +2,7 @@
 
 #include <array>
 #include <bit>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -9,8 +10,6 @@
 
 namespace spq
 {
-    inline constexpr std::array<std::uint8_t, 2> protocol_version{1u, 0u};
-
     using MessageLengthType = std::uint16_t;
     using SignatureType = std::uint8_t;
 
@@ -72,6 +71,15 @@ namespace spq
         signed_integer,
         unsigned_integer
     };
+
+    template <typename T>
+    concept wire_value = std::same_as<T, float>
+                      || (std::integral<T> && sizeof(T) == sizeof(std::uint32_t));
+
+    template <wire_value T>
+    inline constexpr value_encoding encoding_of = std::floating_point<T>  ? value_encoding::floating_point
+                                                : std::signed_integral<T> ? value_encoding::signed_integer
+                                                                          : value_encoding::unsigned_integer;
 
     struct header
     {

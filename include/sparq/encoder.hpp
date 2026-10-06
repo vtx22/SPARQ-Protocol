@@ -45,11 +45,12 @@ namespace spq
     public:
         constexpr encoder() noexcept = default;
 
+        template <wire_value T>
         [[nodiscard]]
         constexpr encoded_message encode_value_pair(
             std::span<std::uint8_t> const buffer,
             std::uint8_t const id,
-            float const value,
+            T const value,
             SignatureType const signature = constants::default_signature) const noexcept
         {
             return encode_value_pairs(
@@ -59,21 +60,26 @@ namespace spq
                 signature);
         }
 
+        template <std::ranges::contiguous_range R>
+            requires std::ranges::sized_range<R> && wire_value<std::ranges::range_value_t<R>>
         [[nodiscard]]
         constexpr encoded_message encode_value_pairs(
             std::span<std::uint8_t> buffer,
             std::span<std::uint8_t const> const ids,
-            std::span<float const> const values,
+            R const& values,
             SignatureType const signature = constants::default_signature) const noexcept
         {
-            if (ids.size() != values.size())
+            using value_type = std::ranges::range_value_t<R>;
+            std::span<value_type const> const samples{values};
+
+            if (ids.size() != samples.size())
             {
                 return {};
             }
 
             auto const payload_length = ids.size() * constants::bytes_per_value_pair;
 
-            if (!has_capacity(buffer, payload_length))
+            if (payload_length > constants::max_payload_length || !has_capacity(buffer, payload_length))
             {
                 return {};
             }
@@ -82,7 +88,7 @@ namespace spq
                 .signature = signature,
                 .control = helper::make_control_byte(
                     message_type::id_value_pair,
-                    value_encoding::floating_point,
+                    encoding_of<value_type>,
                     true),
                 .payload_length = static_cast<MessageLengthType>(payload_length),
                 .checksum = 0u};
@@ -94,7 +100,7 @@ namespace spq
             for (std::size_t i = 0; i < ids.size(); ++i)
             {
                 payload[0] = ids[i];
-                write_float(payload + 1u, values[i]);
+                write_value(payload + 1u, samples[i]);
                 payload += constants::bytes_per_value_pair;
             }
 
@@ -104,16 +110,21 @@ namespace spq
                 header);
         }
 
+        template <std::ranges::contiguous_range R>
+            requires std::ranges::sized_range<R> && wire_value<std::ranges::range_value_t<R>>
         [[nodiscard]]
         constexpr encoded_message encode_bulk_single_id(
             std::span<std::uint8_t> buffer,
             std::uint8_t const id,
-            std::span<float const> const values,
+            R const& values,
             SignatureType const signature = constants::default_signature) const noexcept
         {
-            auto const payload_length = 1u + values.size() * constants::bytes_per_value;
+            using value_type = std::ranges::range_value_t<R>;
+            std::span<value_type const> const samples{values};
 
-            if (!has_capacity(buffer, payload_length))
+            auto const payload_length = 1u + samples.size() * constants::bytes_per_value;
+
+            if (payload_length > constants::max_payload_length || !has_capacity(buffer, payload_length))
             {
                 return {};
             }
@@ -122,7 +133,7 @@ namespace spq
                 .signature = signature,
                 .control = helper::make_control_byte(
                     message_type::bulk_single_id,
-                    value_encoding::floating_point,
+                    encoding_of<value_type>,
                     true),
                 .payload_length = static_cast<MessageLengthType>(payload_length),
                 .checksum = 0u};
@@ -133,9 +144,9 @@ namespace spq
 
             payload[0] = id;
 
-            for (std::size_t i = 0; i < values.size(); ++i)
+            for (std::size_t i = 0; i < samples.size(); ++i)
             {
-                write_float(payload + 1u + i * constants::bytes_per_value, values[i]);
+                write_value(payload + 1u + i * constants::bytes_per_value, samples[i]);
             }
 
             return finalize(
@@ -235,10 +246,10 @@ namespace spq
             return buffer.size() >= constants::message_header_length + payload_length + constants::checksum_length;
         }
 
-        static constexpr void write_float(std::uint8_t* data, float const value) noexcept
+        template <wire_value T>
+        static constexpr void write_value(std::uint8_t* const destination, T const value) noexcept
         {
-            auto const bits = std::bit_cast<std::uint32_t>(value);
-            helper::write_u32(data, bits);
+            helper::write_u32(destination, std::bit_cast<std::uint32_t>(value));
         }
 
         [[nodiscard]]
